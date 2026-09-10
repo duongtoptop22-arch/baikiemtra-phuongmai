@@ -612,50 +612,74 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
                 {showReview ? "Ẩn bài làm" : "Xem lại bài thi của tôi"}
               </button>
             )}
-            {showReview && (
-              <div className="mt-4 space-y-3 text-left">
-                {review === null && (
-                  <p className="text-[13px] text-muted-foreground">Đang tải bài làm…</p>
-                )}
-                {review?.length === 0 && (
-                  <p className="text-[13px] text-muted-foreground">Không có dữ liệu bài làm.</p>
-                )}
-                {(review ?? []).map((q, i) => (
-                  <div key={q.id} className="rounded-2xl border border-border bg-secondary/40 p-4">
-                    <p className="text-[12px] font-semibold text-muted-foreground">
-                      Câu {i + 1} · {q.points} điểm ·{" "}
-                      {q.chosenIndex === q.correctIndex ? "Đúng" : "Sai"}
-                    </p>
-                    <p className="mt-1 whitespace-pre-wrap text-[14px] font-medium">{q.prompt}</p>
-                    <div className="mt-2 space-y-1.5">
-                      {q.options.map((opt, oi) => {
-                        const isCorrect = oi === q.correctIndex;
-                        const isChosen = oi === q.chosenIndex;
-                        return (
-                          <p
-                            key={oi}
-                            className={`rounded-xl border px-3 py-2 text-[13px] ${
-                              isCorrect
-                                ? "border-primary bg-primary/10 font-medium"
-                                : isChosen
-                                  ? "border-destructive/40 bg-destructive/5"
-                                  : "border-border bg-card"
-                            }`}
-                          >
-                            {opt}
-                            {isCorrect && " ✓"}
-                            {isChosen && !isCorrect && " ← bạn chọn"}
-                          </p>
-                        );
-                      })}
-                      {q.chosenIndex === null && (
-                        <p className="text-[12px] text-muted-foreground">Bạn chưa trả lời câu này.</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+{showReview && (
+  <div className="mt-4 space-y-3 text-left">
+    {!testMode && examStatus(exam, new Date(now)) !== "closed" ? (
+      <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5 text-center">
+        <p className="text-[13px] font-medium text-primary">
+          Kết quả bài thi và đáp án sẽ được công bố sau
+        </p>
+        {secondsToClose(exam, new Date(now)) !== null ? (
+          <>
+            <p className="mt-2 font-display text-[40px] font-bold leading-none tabular text-primary">
+              {formatClock(Math.ceil(secondsToClose(exam, new Date(now))!))}
+            </p>
+            <p className="mt-2 text-[12px] text-muted-foreground">
+              Đóng lúc {formatDateTime(exam.close_at)}
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 text-[12px] text-muted-foreground">
+            Sau khi giáo viên đóng bài thi.
+          </p>
+        )}
+      </div>
+    ) : (
+      <>
+        {review === null && (
+          <p className="text-[13px] text-muted-foreground">Đang tải bài làm…</p>
+        )}
+        {review?.length === 0 && (
+          <p className="text-[13px] text-muted-foreground">Không có dữ liệu bài làm.</p>
+        )}
+        {(review ?? []).map((q, i) => (
+          <div key={q.id} className="rounded-2xl border border-border bg-secondary/40 p-4">
+            <p className="text-[12px] font-semibold text-muted-foreground">
+              Câu {i + 1} · {q.points} điểm ·{" "}
+              {q.chosenIndex === q.correctIndex ? "Đúng" : "Sai"}
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-[14px] font-medium">{q.prompt}</p>
+            <div className="mt-2 space-y-1.5">
+              {q.options.map((opt, oi) => {
+                const isCorrect = oi === q.correctIndex;
+                const isChosen = oi === q.chosenIndex;
+                return (
+                  <p
+                    key={oi}
+                    className={`rounded-xl border px-3 py-2 text-[13px] ${
+                      isCorrect
+                        ? "border-primary bg-primary/10 font-medium"
+                        : isChosen
+                          ? "border-destructive/40 bg-destructive/5"
+                          : "border-border bg-card"
+                    }`}
+                  >
+                    {opt}
+                    {isCorrect && " ✓"}
+                    {isChosen && !isCorrect && " ← bạn chọn"}
+                  </p>
+                );
+              })}
+              {q.chosenIndex === null && (
+                <p className="text-[12px] text-muted-foreground">Bạn chưa trả lời câu này.</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </>
+    )}
+  </div>
+)}
             <button
               onClick={resetForNextStudent}
               className="mt-4 w-full rounded-xl border border-primary bg-card py-3 text-[14px] font-semibold text-primary transition-colors hover:bg-primary/5"
