@@ -459,10 +459,10 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
                 <label className="mt-3 block">
                   <span className="text-[13px] font-medium text-muted-foreground">Lớp</span>
                   <input
-                    className={`${field} mt-1.5`}
+                    className={`${field} mt-1.5 placeholder:text-muted-foreground/60`}
                     value={klass}
                     onChange={(e) => setKlass(e.target.value)}
-                    placeholder="K19B"
+                    placeholder="K19B SPAN"
                   />
                 </label>
                 {formError && <p className="mt-2 text-[12px] text-destructive">{formError}</p>}
