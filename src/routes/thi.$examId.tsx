@@ -333,6 +333,8 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
   const openReview = async () => {
     setShowReview(true);
     if (review || !attemptId || testMode) return;
+    // Chỉ tải đáp án khi bài thi đã đóng; khi còn mở thì giao diện hiện thông báo đếm ngược.
+    if (examStatus(exam, new Date()) !== "closed") return;
     try {
       const rows = (await fetchReview({
         data: { examId: exam.id, attemptId },
