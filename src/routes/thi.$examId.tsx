@@ -18,6 +18,7 @@ import {
   examStatus,
   formatClock,
   formatDateTime,
+  secondsToClose,
   startKey,
   toEmbedUrl,
   type Exam,
