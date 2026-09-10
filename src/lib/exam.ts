@@ -64,6 +64,12 @@ export function deadlineFor(exam: Exam, startedAt: number): number {
   return byDuration;
 }
 
+/** Số giây còn lại đến khi bài thi đóng (dựa trên close_at). Null nếu không có giờ đóng. */
+export function secondsToClose(exam: Exam, now: Date = new Date()): number | null {
+  if (!exam.close_at) return null;
+  return Math.max(0, (new Date(exam.close_at).getTime() - now.getTime()) / 1000);
+}
+
 export function startKey(examId: string) {
   return `exam-start:${examId}`;
 }
