@@ -23,6 +23,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const register = useServerFn(signUpTeacher);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
