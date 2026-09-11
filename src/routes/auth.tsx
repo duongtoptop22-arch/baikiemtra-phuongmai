@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { signUpTeacher } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
