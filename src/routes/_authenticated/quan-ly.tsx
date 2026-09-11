@@ -352,8 +352,125 @@ function Dashboard() {
             ))}
           </div>
         </section>
+
+        <AdminPanel />
       </main>
     </div>
+  );
+}
+
+function AdminPanel() {
+  const queryClient = useQueryClient();
+  const fetchRole = useServerFn(getMyRole);
+  const fetchAdmins = useServerFn(listAdmins);
+  const doAdd = useServerFn(addAdmin);
+  const doRemove = useServerFn(removeAdmin);
+  const [email, setEmail] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const { data: me } = useQuery({ queryKey: ["my-role"], queryFn: () => fetchRole({}) });
+  const isSuper = me?.role === "super_admin";
+
+  const { data: admins, isLoading } = useQuery({
+    queryKey: ["allowed-teachers"],
+    queryFn: () => fetchAdmins({}),
+    enabled: isSuper,
+  });
+
+  const add = useMutation({
+    mutationFn: async () => doAdd({ data: { email } }),
+    onSuccess: () => {
+      setEmail("");
+      setMsg(null);
+      queryClient.invalidateQueries({ queryKey: ["allowed-teachers"] });
+    },
+    onError: (e: unknown) => setMsg(e instanceof Error ? e.message : "Không thêm được."),
+  });
+
+  const drop = useMutation({
+    mutationFn: async (target: string) => doRemove({ data: { email: target } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["allowed-teachers"] }),
+    onError: (e: unknown) => setMsg(e instanceof Error ? e.message : "Không gỡ được."),
+  });
+
+  if (!isSuper) return null;
+
+  return (
+    <section className="mt-10">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Users className="size-5" />
+            Quản lý quản trị viên
+          </CardTitle>
+          <CardDescription>
+            Chỉ những email trong danh sách này mới tạo được tài khoản giáo viên.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!email.trim()) return;
+              add.mutate();
+            }}
+            className="flex flex-col gap-2 sm:flex-row"
+          >
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email-quan-tri-phu@gmail.com"
+              className="flex-1 rounded-xl border border-input bg-secondary px-4 py-2.5 text-[14px] outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+            <Button type="submit" disabled={add.isPending} className="gap-2">
+              <Plus className="size-4" />
+              Thêm quản trị phụ
+            </Button>
+          </form>
+
+          {msg && (
+            <p className="flex items-center gap-2 text-[13px] text-destructive">
+              <AlertCircle className="size-4" />
+              {msg}
+            </p>
+          )}
+
+          <div className="divide-y divide-border rounded-xl border border-border">
+            {isLoading && (
+              <p className="px-4 py-4 text-sm text-muted-foreground">Đang tải danh sách…</p>
+            )}
+            {(admins ?? []).map((a) => (
+              <div key={a.email} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{a.email}</p>
+                  <p className="text-[12px] text-muted-foreground">
+                    {a.registered ? "Đã tạo tài khoản" : "Chưa tạo tài khoản"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={a.role === "super_admin" ? "default" : "secondary"}>
+                    {a.role === "super_admin" ? "Quản trị chính" : "Quản trị phụ"}
+                  </Badge>
+                  {a.role !== "super_admin" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={drop.isPending}
+                      onClick={() => drop.mutate(a.email)}
+                      className="gap-1 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                      Gỡ
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 
