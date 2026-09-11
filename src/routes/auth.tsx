@@ -41,19 +41,23 @@ function AuthPage() {
       if (error) return setMessage("Email hoặc mật khẩu chưa đúng.");
       navigate({ to: "/quan-ly", replace: true });
     } else {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin },
-      });
-      setLoading(false);
-      if (error) return setMessage(error.message);
-      if (data.session) navigate({ to: "/quan-ly", replace: true });
-      else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) return setMessage("Tạo tài khoản xong, hãy đăng nhập lại.");
-        navigate({ to: "/quan-ly", replace: true });
+      try {
+        await register({ data: { email: email.trim().toLowerCase(), password } });
+      } catch (err) {
+        setLoading(false);
+        const raw = err instanceof Error ? err.message : "";
+        return setMessage(
+          raw.includes("chưa được cấp quyền") || raw.includes("không hợp lệ") || raw.includes("Mật khẩu")
+            ? raw
+            : raw.includes("already")
+              ? "Email này đã có tài khoản. Hãy đăng nhập."
+              : "Email này chưa được cấp quyền tạo tài khoản. Hãy liên hệ quản trị viên chính.",
+        );
       }
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      setLoading(false);
+      if (signInError) return setMessage("Tạo tài khoản xong, hãy đăng nhập lại.");
+      navigate({ to: "/quan-ly", replace: true });
     }
   };
 
