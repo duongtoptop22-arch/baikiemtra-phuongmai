@@ -770,6 +770,7 @@ function ExamCard({
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-semibold leading-tight sm:text-lg">{exam.title}</h3>
                 <Badge variant={statusBadgeVariant(status)}>{statusLabel[status]}</Badge>
+                {!canManage && <Badge variant="outline">Bài của giáo viên khác</Badge>}
               </div>
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 {exam.subject && <span>{exam.subject}</span>}
@@ -788,14 +789,18 @@ function ExamCard({
             </div>
           </div>
           <p className="mt-3 text-xs font-medium text-primary">
-            {open ? "Ẩn chi tiết" : "Mở để tạo câu hỏi bằng AI, sửa đề & xem bài đã làm"}
+            {open
+              ? "Ẩn chi tiết"
+              : canManage
+                ? "Mở để tạo câu hỏi bằng AI, sửa đề & xem bài đã làm"
+                : "Mở để xem kết quả bài làm của sinh viên"}
           </p>
         </CardContent>
       </button>
 
       {open && (
         <div className="border-t border-border bg-muted/30 px-5 py-5">
-          <ExamDetail exam={exam} onToggleStatus={onToggleStatus} onRemove={onRemove} />
+          <ExamDetail exam={exam} canManage={canManage} onToggleStatus={onToggleStatus} onRemove={onRemove} />
         </div>
       )}
     </Card>
