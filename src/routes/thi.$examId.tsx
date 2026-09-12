@@ -386,7 +386,7 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
               </p>
             </>
           ) : (
-            <p className="mt-6 text-[14px] text-muted-foreground">Bài kiểm tra đã đóng.</p>
+            <ClosedResult exam={exam} />
           )}
 
           <Link to="/" className="mt-6 inline-block text-sm font-semibold text-primary">
@@ -644,48 +644,7 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
         )}
       </div>
     ) : (
-      <>
-        {review === null && (
-          <p className="text-[13px] text-muted-foreground">Đang tải bài làm…</p>
-        )}
-        {review?.length === 0 && (
-          <p className="text-[13px] text-muted-foreground">Không có dữ liệu bài làm.</p>
-        )}
-        {(review ?? []).map((q, i) => (
-          <div key={q.id} className="rounded-2xl border border-border bg-secondary/40 p-4">
-            <p className="text-[12px] font-semibold text-muted-foreground">
-              Câu {i + 1} · {q.points} điểm ·{" "}
-              {q.chosenIndex === q.correctIndex ? "Đúng" : "Sai"}
-            </p>
-            <p className="mt-1 whitespace-pre-wrap text-[14px] font-medium">{q.prompt}</p>
-            <div className="mt-2 space-y-1.5">
-              {q.options.map((opt, oi) => {
-                const isCorrect = oi === q.correctIndex;
-                const isChosen = oi === q.chosenIndex;
-                return (
-                  <p
-                    key={oi}
-                    className={`rounded-xl border px-3 py-2 text-[13px] ${
-                      isCorrect
-                        ? "border-primary bg-primary/10 font-medium"
-                        : isChosen
-                          ? "border-destructive/40 bg-destructive/5"
-                          : "border-border bg-card"
-                    }`}
-                  >
-                    {opt}
-                    {isCorrect && " ✓"}
-                    {isChosen && !isCorrect && " ← bạn chọn"}
-                  </p>
-                );
-              })}
-              {q.chosenIndex === null && (
-                <p className="text-[12px] text-muted-foreground">Bạn chưa trả lời câu này.</p>
-              )}
-            </div>
-          </div>
-        ))}
-      </>
+      <ReviewList review={review} />
     )}
   </div>
 )}
