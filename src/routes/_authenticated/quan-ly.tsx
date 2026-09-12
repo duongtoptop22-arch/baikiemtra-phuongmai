@@ -134,6 +134,12 @@ function Dashboard() {
     return () => clearTimeout(t);
   }, [form.form_url]);
 
+  const { data: myId } = useQuery({
+    queryKey: ["my-uid"],
+    queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null,
+    staleTime: 60_000,
+  });
+
   const { data: exams, isLoading } = useQuery({
     queryKey: ["my-exams"],
     queryFn: async () => {
@@ -345,6 +351,7 @@ function Dashboard() {
               <ExamCard
                 key={exam.id}
                 exam={exam}
+                canManage={!myId || exam.teacher_id === myId}
                 open={openId === exam.id}
                 onToggleOpen={() => setOpenId(openId === exam.id ? null : exam.id)}
                 onToggleStatus={() => toggle.mutate(exam)}
