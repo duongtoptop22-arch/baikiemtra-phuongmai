@@ -809,10 +809,12 @@ function ExamCard({
 
 function ExamDetail({
   exam,
+  canManage,
   onToggleStatus,
   onRemove,
 }: {
   exam: Exam;
+  canManage: boolean;
   onToggleStatus: () => void;
   onRemove: () => void;
 }) {
@@ -839,48 +841,61 @@ function ExamDetail({
             Xem thử
           </a>
         </Button>
-        <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
-          {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
-          {exam.registration_open ? "Đóng bài" : "Mở lại"}
-        </Button>
-        <Button variant="destructive" size="sm" onClick={onRemove} className="gap-2 ml-auto">
-          <Trash2 className="size-4" />
-          Xoá
-        </Button>
+        {canManage && (
+          <>
+            <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
+              {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
+              {exam.registration_open ? "Đóng bài" : "Mở lại"}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={onRemove} className="gap-2 ml-auto">
+              <Trash2 className="size-4" />
+              Xoá
+            </Button>
+          </>
+        )}
       </div>
 
-      <Tabs defaultValue="settings" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="settings" className="gap-2">
-            <Edit3 className="size-4" />
-            Cài đặt
-          </TabsTrigger>
-          <TabsTrigger value="questions" className="gap-2">
-            <BookOpen className="size-4" />
-            Sửa câu hỏi
-          </TabsTrigger>
+      <Tabs defaultValue={canManage ? "settings" : "students"} className="w-full">
+        <TabsList className={`grid w-full ${canManage ? "grid-cols-3" : "grid-cols-1"}`}>
+          {canManage && (
+            <>
+              <TabsTrigger value="settings" className="gap-2">
+                <Edit3 className="size-4" />
+                Cài đặt
+              </TabsTrigger>
+              <TabsTrigger value="questions" className="gap-2">
+                <BookOpen className="size-4" />
+                Sửa câu hỏi
+              </TabsTrigger>
+            </>
+          )}
           <TabsTrigger value="students" className="gap-2">
             <Users className="size-4" />
             Sinh viên đã làm ({attempts?.length ?? 0})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="settings" className="mt-4 space-y-4">
-          <EditExamForm exam={exam} onDone={() => undefined} />
-          {exam.form_url && (
-            <div className="rounded-xl border border-border bg-card p-3">
-              <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <Link2 className="size-3.5" />
-                Link Google Form
-              </p>
-              <p className="mt-1 break-all text-sm">{exam.form_url}</p>
-            </div>
-          )}
-        </TabsContent>
+        {canManage && (
+          <>
+            <TabsContent value="settings" className="mt-4 space-y-4">
+              <EditExamForm exam={exam} onDone={() => undefined} />
+              {exam.form_url && (
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <Link2 className="size-3.5" />
+                    Link Google Form
+                  </p>
+                  <p className="mt-1 break-all text-sm">{exam.form_url}</p>
+                </div>
+              )}
+            </TabsContent>
 
-        <TabsContent value="questions" className="mt-4">
-          <QuestionEditor examId={exam.id} />
-        </TabsContent>
+            <TabsContent value="questions" className="mt-4">
+              <QuestionEditor examId={exam.id} />
+            </TabsContent>
+          </>
+        )}
+
 
         <TabsContent value="students" className="mt-4">
           <Card>
