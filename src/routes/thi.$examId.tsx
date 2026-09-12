@@ -7,10 +7,13 @@ import {
   checkStudentName,
   getAttemptReview,
   getExamQuestions,
+  getPublicExamInfo,
+  getStudentResult,
   gradeAttempt,
   gradePreview,
   type PublicQuestion,
   type ReviewQuestion,
+  type StudentResult,
 } from "@/lib/quiz.functions";
 import { createAttempt, updateAttempt } from "@/lib/attempt.functions";
 import {
@@ -49,7 +52,11 @@ function ExamPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("exams").select("*").eq("id", examId).maybeSingle();
       if (error) throw error;
-      return data as Exam | null;
+      if (data) return data as Exam;
+      // Bài đã đóng không còn hiển thị công khai — lấy thông tin an toàn qua máy chủ.
+      const info = await getPublicExamInfo({ data: { examId } });
+      if (!info) return null;
+      return { ...info, teacher_id: "", form_url: "" } as Exam;
     },
   });
 
