@@ -99,6 +99,93 @@ export const checkStudentName = createServerFn({ method: "POST" })
     return { taken };
   });
 
+export type PublicExamInfo = {
+  id: string;
+  title: string;
+  subject: string | null;
+  mode: string;
+  duration_minutes: number;
+  open_at: string | null;
+  close_at: string | null;
+  registration_open: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Thông tin an toàn của một bài thi ĐÃ ĐÓNG — không kèm link form hay mã giáo viên. */
+export const getPublicExamInfo = createServerFn({ method: "GET" })
+  .inputValidator((data: { examId: string }) => {
+    if (!data || typeof data.examId !== "string") throw new Error("examId is required");
+    return { examId: data.examId };
+  })
+  .handler(async ({ data }): Promise<PublicExamInfo | null> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: exam, error } = await supabaseAdmin
+      .from("exams")
+      .select("id, title, subject, mode, duration_minutes, open_at, close_at, registration_open, created_at, updated_at")
+      .eq("id", data.examId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!exam) return null;
+    const closed =
+      !exam.registration_open ||
+      (exam.close_at !== null && new Date(exam.close_at).getTime() <= Date.now());
+    if (!closed) return null;
+    return exam as PublicExamInfo;
+  });
+
+export type StudentResult = {
+  attemptId: string;
+  studentName: string;
+  studentClass: string | null;
+  score: number | null;
+  submittedAt: string;
+};
+
+/** Học sinh tra cứu kết quả của chính mình sau khi bài thi đã đóng. */
+export const getStudentResult = createServerFn({ method: "POST" })
+  .inputValidator((data: { examId: string; name: string }) => {
+    if (!data || typeof data.examId !== "string") throw new Error("examId is required");
+    return { examId: data.examId, name: String(data.name ?? "") };
+  })
+  .handler(async ({ data }): Promise<StudentResult | null> => {
+    const name = data.name.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!name) return null;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: exam, error: examErr } = await supabaseAdmin
+      .from("exams")
+      .select("id, registration_open, close_at")
+      .eq("id", data.examId)
+      .maybeSingle();
+    if (examErr) throw new Error(examErr.message);
+    if (!exam) return null;
+    const closed =
+      !exam.registration_open ||
+      (exam.close_at !== null && new Date(exam.close_at).getTime() <= Date.now());
+    if (!closed) throw new Error("Kết quả chỉ được công bố sau khi bài thi đóng.");
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("exam_attempts")
+      .select("id, student_name, student_class, score, submitted_at")
+      .eq("exam_id", data.examId)
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const found = (rows ?? []).find(
+      (r) => String(r.student_name ?? "").trim().replace(/\s+/g, " ").toLowerCase() === name,
+    );
+    if (!found) return null;
+    return {
+      attemptId: found.id,
+      studentName: found.student_name,
+      studentClass: found.student_class,
+      score: found.score,
+      submittedAt: found.submitted_at!,
+    };
+  });
+
 export type ReviewQuestion = {
   id: string;
   position: number;

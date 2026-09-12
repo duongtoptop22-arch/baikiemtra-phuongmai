@@ -7,10 +7,13 @@ import {
   checkStudentName,
   getAttemptReview,
   getExamQuestions,
+  getPublicExamInfo,
+  getStudentResult,
   gradeAttempt,
   gradePreview,
   type PublicQuestion,
   type ReviewQuestion,
+  type StudentResult,
 } from "@/lib/quiz.functions";
 import { createAttempt, updateAttempt } from "@/lib/attempt.functions";
 import {
@@ -49,7 +52,11 @@ function ExamPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("exams").select("*").eq("id", examId).maybeSingle();
       if (error) throw error;
-      return data as Exam | null;
+      if (data) return data as Exam;
+      // Bài đã đóng không còn hiển thị công khai — lấy thông tin an toàn qua máy chủ.
+      const info = await getPublicExamInfo({ data: { examId } });
+      if (!info) return null;
+      return { ...info, teacher_id: "", form_url: "" } as Exam;
     },
   });
 
@@ -379,7 +386,7 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
               </p>
             </>
           ) : (
-            <p className="mt-6 text-[14px] text-muted-foreground">Bài kiểm tra đã đóng.</p>
+            <ClosedResult exam={exam} />
           )}
 
           <Link to="/" className="mt-6 inline-block text-sm font-semibold text-primary">
@@ -637,48 +644,7 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
         )}
       </div>
     ) : (
-      <>
-        {review === null && (
-          <p className="text-[13px] text-muted-foreground">Đang tải bài làm…</p>
-        )}
-        {review?.length === 0 && (
-          <p className="text-[13px] text-muted-foreground">Không có dữ liệu bài làm.</p>
-        )}
-        {(review ?? []).map((q, i) => (
-          <div key={q.id} className="rounded-2xl border border-border bg-secondary/40 p-4">
-            <p className="text-[12px] font-semibold text-muted-foreground">
-              Câu {i + 1} · {q.points} điểm ·{" "}
-              {q.chosenIndex === q.correctIndex ? "Đúng" : "Sai"}
-            </p>
-            <p className="mt-1 whitespace-pre-wrap text-[14px] font-medium">{q.prompt}</p>
-            <div className="mt-2 space-y-1.5">
-              {q.options.map((opt, oi) => {
-                const isCorrect = oi === q.correctIndex;
-                const isChosen = oi === q.chosenIndex;
-                return (
-                  <p
-                    key={oi}
-                    className={`rounded-xl border px-3 py-2 text-[13px] ${
-                      isCorrect
-                        ? "border-primary bg-primary/10 font-medium"
-                        : isChosen
-                          ? "border-destructive/40 bg-destructive/5"
-                          : "border-border bg-card"
-                    }`}
-                  >
-                    {opt}
-                    {isCorrect && " ✓"}
-                    {isChosen && !isCorrect && " ← bạn chọn"}
-                  </p>
-                );
-              })}
-              {q.chosenIndex === null && (
-                <p className="text-[12px] text-muted-foreground">Bạn chưa trả lời câu này.</p>
-              )}
-            </div>
-          </div>
-        ))}
-      </>
+      <ReviewList review={review} />
     )}
   </div>
 )}
@@ -694,6 +660,182 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+/** Danh sách câu hỏi kèm đáp án đúng và lựa chọn của học sinh. */
+function ReviewList({ review }: { review: ReviewQuestion[] | null }) {
+  return (
+    <>
+      {review === null && (
+        <p className="text-[13px] text-muted-foreground">Đang tải bài làm…</p>
+      )}
+      {review?.length === 0 && (
+        <p className="text-[13px] text-muted-foreground">Không có dữ liệu bài làm.</p>
+      )}
+      {(review ?? []).map((q, i) => (
+        <div key={q.id} className="rounded-2xl border border-border bg-secondary/40 p-4">
+          <p className="text-[12px] font-semibold text-muted-foreground">
+            Câu {i + 1} · {q.points} điểm ·{" "}
+            {q.chosenIndex === q.correctIndex ? "Đúng" : "Sai"}
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-[14px] font-medium">{q.prompt}</p>
+          <div className="mt-2 space-y-1.5">
+            {q.options.map((opt, oi) => {
+              const isCorrect = oi === q.correctIndex;
+              const isChosen = oi === q.chosenIndex;
+              return (
+                <p
+                  key={oi}
+                  className={`rounded-xl border px-3 py-2 text-[13px] ${
+                    isCorrect
+                      ? "border-primary bg-primary/10 font-medium"
+                      : isChosen
+                        ? "border-destructive/40 bg-destructive/5"
+                        : "border-border bg-card"
+                  }`}
+                >
+                  {opt}
+                  {isCorrect && " ✓"}
+                  {isChosen && !isCorrect && " ← bạn chọn"}
+                </p>
+              );
+            })}
+            {q.chosenIndex === null && (
+              <p className="text-[12px] text-muted-foreground">Bạn chưa trả lời câu này.</p>
+            )}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** Tra cứu kết quả sau khi bài thi đã đóng: nhập đúng họ tên đã thi để xem điểm và bài làm. */
+function ClosedResult({ exam }: { exam: Exam }) {
+  const fetchResult = useServerFn(getStudentResult);
+  const fetchReview = useServerFn(getAttemptReview);
+  const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<StudentResult | null>(null);
+  const [review, setReview] = useState<ReviewQuestion[] | null>(null);
+  const [showReview, setShowReview] = useState(false);
+
+  const lookup = async () => {
+    if (!name.trim()) {
+      setError("Nhập họ tên bạn đã dùng khi làm bài.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const found = await fetchResult({ data: { examId: exam.id, name: name.trim() } });
+      if (!found) {
+        setError("Không tìm thấy bài làm với họ tên này. Kiểm tra lại chính tả.");
+        return;
+      }
+      setResult(found);
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "Không tra cứu được. Thử lại sau.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleReview = async () => {
+    if (showReview) {
+      setShowReview(false);
+      return;
+    }
+    setShowReview(true);
+    if (review || !result) return;
+    try {
+      const rows = (await fetchReview({
+        data: { examId: exam.id, attemptId: result.attemptId },
+      })) as ReviewQuestion[];
+      setReview(rows);
+    } catch {
+      setReview([]);
+    }
+  };
+
+  if (!result) {
+    return (
+      <div className="mt-6 text-left">
+        <p className="text-center text-[14px] text-muted-foreground">
+          Bài kiểm tra đã đóng. Nhập họ tên để xem điểm và bài làm của bạn.
+        </p>
+        <label className="mt-4 block">
+          <span className="text-[13px] font-medium text-muted-foreground">Họ và tên</span>
+          <input
+            className="mt-1.5 w-full rounded-xl border border-input bg-secondary px-4 py-3 text-[14px] text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void lookup();
+            }}
+            placeholder="DANG NGOC DUONG"
+          />
+        </label>
+        {error && <p className="mt-2 text-[12px] text-destructive">{error}</p>}
+        <button
+          onClick={() => void lookup()}
+          disabled={loading}
+          className="mt-4 w-full rounded-xl bg-primary py-3 text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+        >
+          {loading ? "Đang tra cứu…" : "Tra cứu kết quả"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6">
+      <p className="text-[13px] text-muted-foreground">
+        {result.studentName}
+        {result.studentClass ? ` · ${result.studentClass}` : ""}
+      </p>
+      {result.score !== null ? (
+        <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/5 px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Điểm của bạn
+          </p>
+          <p className="mt-1 font-display text-[40px] font-bold leading-none tabular text-primary">
+            {result.score}
+            <span className="text-[18px] text-muted-foreground">/10</span>
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 text-[13px] text-muted-foreground">
+          Bài thi dạng biểu mẫu — điểm được giáo viên công bố riêng.
+        </p>
+      )}
+      {exam.mode === "manual" && (
+        <button
+          onClick={() => void toggleReview()}
+          className="mt-4 w-full rounded-xl bg-primary py-3 text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {showReview ? "Ẩn bài làm" : "Xem lại bài thi của tôi"}
+        </button>
+      )}
+      {showReview && (
+        <div className="mt-4 space-y-3 text-left">
+          <ReviewList review={review} />
+        </div>
+      )}
+      <button
+        onClick={() => {
+          setResult(null);
+          setReview(null);
+          setShowReview(false);
+          setName("");
+        }}
+        className="mt-4 w-full rounded-xl border border-border bg-card py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        Tra cứu họ tên khác
+      </button>
     </div>
   );
 }

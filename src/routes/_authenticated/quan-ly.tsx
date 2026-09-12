@@ -134,6 +134,12 @@ function Dashboard() {
     return () => clearTimeout(t);
   }, [form.form_url]);
 
+  const { data: myId } = useQuery({
+    queryKey: ["my-uid"],
+    queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null,
+    staleTime: 60_000,
+  });
+
   const { data: exams, isLoading } = useQuery({
     queryKey: ["my-exams"],
     queryFn: async () => {
@@ -345,6 +351,7 @@ function Dashboard() {
               <ExamCard
                 key={exam.id}
                 exam={exam}
+                canManage={!myId || exam.teacher_id === myId}
                 open={openId === exam.id}
                 onToggleOpen={() => setOpenId(openId === exam.id ? null : exam.id)}
                 onToggleStatus={() => toggle.mutate(exam)}
@@ -740,12 +747,14 @@ function ManualForm({
 
 function ExamCard({
   exam,
+  canManage,
   open,
   onToggleOpen,
   onToggleStatus,
   onRemove,
 }: {
   exam: Exam;
+  canManage: boolean;
   open: boolean;
   onToggleOpen: () => void;
   onToggleStatus: () => void;
@@ -761,6 +770,7 @@ function ExamCard({
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-semibold leading-tight sm:text-lg">{exam.title}</h3>
                 <Badge variant={statusBadgeVariant(status)}>{statusLabel[status]}</Badge>
+                {!canManage && <Badge variant="outline">Bài của giáo viên khác</Badge>}
               </div>
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 {exam.subject && <span>{exam.subject}</span>}
@@ -779,14 +789,18 @@ function ExamCard({
             </div>
           </div>
           <p className="mt-3 text-xs font-medium text-primary">
-            {open ? "Ẩn chi tiết" : "Mở để tạo câu hỏi bằng AI, sửa đề & xem bài đã làm"}
+            {open
+              ? "Ẩn chi tiết"
+              : canManage
+                ? "Mở để tạo câu hỏi bằng AI, sửa đề & xem bài đã làm"
+                : "Mở để xem kết quả bài làm của sinh viên"}
           </p>
         </CardContent>
       </button>
 
       {open && (
         <div className="border-t border-border bg-muted/30 px-5 py-5">
-          <ExamDetail exam={exam} onToggleStatus={onToggleStatus} onRemove={onRemove} />
+          <ExamDetail exam={exam} canManage={canManage} onToggleStatus={onToggleStatus} onRemove={onRemove} />
         </div>
       )}
     </Card>
@@ -795,10 +809,12 @@ function ExamCard({
 
 function ExamDetail({
   exam,
+  canManage,
   onToggleStatus,
   onRemove,
 }: {
   exam: Exam;
+  canManage: boolean;
   onToggleStatus: () => void;
   onRemove: () => void;
 }) {
@@ -825,48 +841,61 @@ function ExamDetail({
             Xem thử
           </a>
         </Button>
-        <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
-          {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
-          {exam.registration_open ? "Đóng bài" : "Mở lại"}
-        </Button>
-        <Button variant="destructive" size="sm" onClick={onRemove} className="gap-2 ml-auto">
-          <Trash2 className="size-4" />
-          Xoá
-        </Button>
+        {canManage && (
+          <>
+            <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
+              {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
+              {exam.registration_open ? "Đóng bài" : "Mở lại"}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={onRemove} className="gap-2 ml-auto">
+              <Trash2 className="size-4" />
+              Xoá
+            </Button>
+          </>
+        )}
       </div>
 
-      <Tabs defaultValue="settings" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="settings" className="gap-2">
-            <Edit3 className="size-4" />
-            Cài đặt
-          </TabsTrigger>
-          <TabsTrigger value="questions" className="gap-2">
-            <BookOpen className="size-4" />
-            Sửa câu hỏi
-          </TabsTrigger>
+      <Tabs defaultValue={canManage ? "settings" : "students"} className="w-full">
+        <TabsList className={`grid w-full ${canManage ? "grid-cols-3" : "grid-cols-1"}`}>
+          {canManage && (
+            <>
+              <TabsTrigger value="settings" className="gap-2">
+                <Edit3 className="size-4" />
+                Cài đặt
+              </TabsTrigger>
+              <TabsTrigger value="questions" className="gap-2">
+                <BookOpen className="size-4" />
+                Sửa câu hỏi
+              </TabsTrigger>
+            </>
+          )}
           <TabsTrigger value="students" className="gap-2">
             <Users className="size-4" />
             Sinh viên đã làm ({attempts?.length ?? 0})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="settings" className="mt-4 space-y-4">
-          <EditExamForm exam={exam} onDone={() => undefined} />
-          {exam.form_url && (
-            <div className="rounded-xl border border-border bg-card p-3">
-              <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <Link2 className="size-3.5" />
-                Link Google Form
-              </p>
-              <p className="mt-1 break-all text-sm">{exam.form_url}</p>
-            </div>
-          )}
-        </TabsContent>
+        {canManage && (
+          <>
+            <TabsContent value="settings" className="mt-4 space-y-4">
+              <EditExamForm exam={exam} onDone={() => undefined} />
+              {exam.form_url && (
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <Link2 className="size-3.5" />
+                    Link Google Form
+                  </p>
+                  <p className="mt-1 break-all text-sm">{exam.form_url}</p>
+                </div>
+              )}
+            </TabsContent>
 
-        <TabsContent value="questions" className="mt-4">
-          <QuestionEditor examId={exam.id} />
-        </TabsContent>
+            <TabsContent value="questions" className="mt-4">
+              <QuestionEditor examId={exam.id} />
+            </TabsContent>
+          </>
+        )}
+
 
         <TabsContent value="students" className="mt-4">
           <Card>
