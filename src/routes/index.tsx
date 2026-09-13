@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { examStatus, statusLabel, formatDateTime, type Exam } from "@/lib/exam";
+import {
+  examStatus,
+  statusLabel,
+  formatDateTime,
+  getCompletedExams,
+  type CompletedExam,
+  type Exam,
+} from "@/lib/exam";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -150,6 +158,8 @@ function Home() {
             })}
           </div>
         </section>
+
+        <CompletedExamsSection />
 
         <div className="relative mt-10 flex items-center py-2">
           <div className="flex-grow border-t border-border" />
