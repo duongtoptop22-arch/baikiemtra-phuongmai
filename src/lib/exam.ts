@@ -73,3 +73,39 @@ export function secondsToClose(exam: Exam, now: Date = new Date()): number | nul
 export function startKey(examId: string) {
   return `exam-start:${examId}`;
 }
+
+/** Bài kiểm tra học sinh đã làm xong — lưu trên chính máy của học sinh (localStorage). */
+export type CompletedExam = {
+  examId: string;
+  title: string;
+  subject: string | null;
+  studentName: string;
+  studentClass: string | null;
+  score: number | null;
+  submittedAt: string;
+};
+
+const COMPLETED_KEY = "completed-exams";
+
+export function getCompletedExams(): CompletedExam[] {
+  try {
+    const raw = localStorage.getItem(COMPLETED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as CompletedExam[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCompletedExam(entry: CompletedExam) {
+  try {
+    const list = getCompletedExams().filter(
+      (e) => !(e.examId === entry.examId && e.studentName === entry.studentName),
+    );
+    list.unshift(entry);
+    localStorage.setItem(COMPLETED_KEY, JSON.stringify(list.slice(0, 50)));
+  } catch {
+    /* bộ nhớ đầy hoặc bị chặn — bỏ qua */
+  }
+}

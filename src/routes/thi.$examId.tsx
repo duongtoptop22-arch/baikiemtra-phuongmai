@@ -21,6 +21,7 @@ import {
   examStatus,
   formatClock,
   formatDateTime,
+  saveCompletedExam,
   secondsToClose,
   startKey,
   toEmbedUrl,
@@ -203,6 +204,17 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
     }
     if (!cur.startedAt) return;
     persist(cur.startedAt, cur.attemptId, true, cur.tabSwitches);
+    // Ghi nhớ bài đã làm trên máy học sinh để tra cứu lại ở trang chủ.
+    const record = (finalScore: number | null) =>
+      saveCompletedExam({
+        examId: exam.id,
+        title: exam.title,
+        subject: exam.subject,
+        studentName: name.trim(),
+        studentClass: klass.trim() || null,
+        score: finalScore,
+        submittedAt: new Date().toISOString(),
+      });
     if (cur.attemptId) {
       try {
         await saveAttempt({
@@ -222,9 +234,13 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
             data: { examId: exam.id, attemptId: cur.attemptId, answers: answersRef.current },
           });
           setScore(res.score);
+          record(res.score);
         } catch {
+          record(null);
           setSaveError("Không chấm được bài. Báo ngay cho giáo viên.");
         }
+      } else {
+        record(null);
       }
     } else {
       setSaveError("Bài làm chưa được ghi nhận vì lượt thi không tạo được. Báo ngay cho giáo viên.");
