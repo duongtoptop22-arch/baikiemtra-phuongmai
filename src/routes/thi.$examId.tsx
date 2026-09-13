@@ -379,8 +379,11 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
     const finalCountdown = status === "scheduled" && secondsToOpen <= 10;
     return (
       <div className="paper grid min-h-screen place-items-center px-5 text-center">
-        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 shadow-sm">
-          <h1 className="text-[22px] font-bold leading-tight text-balance">{exam.title}</h1>
+        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 shadow-lg shadow-primary/5">
+          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 font-display text-sm font-bold text-primary">
+            KT
+          </div>
+          <h1 className="mt-4 text-[22px] font-bold leading-tight text-balance">{exam.title}</h1>
           {exam.subject && <p className="mt-1 text-[13px] text-muted-foreground">{exam.subject}</p>}
 
           {status === "scheduled" ? (
@@ -558,25 +561,37 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-[15px] font-medium">{q.prompt}</p>
                 <div className="mt-3 space-y-2">
-                  {q.options.map((opt, oi) => (
-                    <label
-                      key={oi}
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-[14px] transition-colors ${
-                        answers[q.id] === oi
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-secondary"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name={`q-${q.id}`}
-                        className="size-4 accent-primary"
-                        checked={answers[q.id] === oi}
-                        onChange={() => setAnswers({ ...answers, [q.id]: oi })}
-                      />
-                      <span>{opt}</span>
-                    </label>
-                  ))}
+                  {q.options.map((opt, oi) => {
+                    const selected = answers[q.id] === oi;
+                    return (
+                      <label
+                        key={oi}
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-[14px] transition-all ${
+                          selected
+                            ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/30"
+                            : "border-border bg-secondary hover:border-primary/30"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={`q-${q.id}`}
+                          className="sr-only"
+                          checked={selected}
+                          onChange={() => setAnswers({ ...answers, [q.id]: oi })}
+                        />
+                        <span
+                          className={`grid size-7 shrink-0 place-items-center rounded-full border text-[12px] font-bold transition-colors ${
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-card text-muted-foreground"
+                          }`}
+                        >
+                          {String.fromCharCode(65 + oi)}
+                        </span>
+                        <span>{opt}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -593,9 +608,9 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
         )}
 
         {submitted && (
-          <div className="mt-4 rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
-            <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-primary/10">
-              <span className="text-[24px]">✓</span>
+          <div className="mt-4 rounded-3xl border border-border bg-card p-6 text-center shadow-lg shadow-primary/5">
+            <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-success/15">
+              <span className="text-[24px] font-bold text-success">✓</span>
             </div>
             <p className="font-display text-[20px] font-bold">
               {endReason === "time" ? "Đã hết giờ" : "Đã ghi nhận bài làm"}
