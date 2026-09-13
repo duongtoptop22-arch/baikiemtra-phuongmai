@@ -184,6 +184,54 @@ function Home() {
   );
 }
 
+/** Danh sách bài kiểm tra học sinh đã làm xong — lưu trên máy của học sinh. */
+function CompletedExamsSection() {
+  const [completed, setCompleted] = useState<CompletedExam[]>([]);
+
+  useEffect(() => {
+    setCompleted(getCompletedExams());
+  }, []);
+
+  if (completed.length === 0) return null;
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-[17px] font-semibold">Bài kiểm tra đã làm</h2>
+      <p className="mt-1 text-[12px] text-muted-foreground">
+        Được lưu trên máy này · Bấm vào để tra cứu điểm và xem lại bài.
+      </p>
+      <div className="mt-4 space-y-3">
+        {completed.map((entry) => (
+          <Link
+            key={`${entry.examId}:${entry.studentName}`}
+            to="/thi/$examId"
+            params={{ examId: entry.examId }}
+            className="block rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-display text-[16px] font-semibold leading-snug">
+                  {entry.title}
+                </p>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  {entry.studentName}
+                  {entry.studentClass ? ` · ${entry.studentClass}` : ""}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                {entry.score !== null ? `${entry.score}/10` : "Đã nộp"}
+              </span>
+            </div>
+            <p className="mt-3 text-[12px] text-muted-foreground tabular">
+              Nộp lúc: {formatDateTime(entry.submittedAt)}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function StatusChip({ status }: { status: "open" | "closed" | "scheduled" }) {
   const styles =
     status === "open"
