@@ -140,6 +140,14 @@ function Dashboard() {
     staleTime: 60_000,
   });
 
+  const fetchRole = useServerFn(getMyRole);
+  const { data: me } = useQuery({
+    queryKey: ["my-role"],
+    queryFn: () => fetchRole({}),
+    staleTime: 60_000,
+  });
+  const isSuper = me?.role === "super_admin";
+
   const { data: exams, isLoading } = useQuery({
     queryKey: ["my-exams"],
     queryFn: async () => {
@@ -352,6 +360,7 @@ function Dashboard() {
                 key={exam.id}
                 exam={exam}
                 canManage={!myId || exam.teacher_id === myId}
+                canDelete={isSuper || (!myId || exam.teacher_id === myId)}
                 open={openId === exam.id}
                 onToggleOpen={() => setOpenId(openId === exam.id ? null : exam.id)}
                 onToggleStatus={() => toggle.mutate(exam)}
@@ -748,6 +757,7 @@ function ManualForm({
 function ExamCard({
   exam,
   canManage,
+  canDelete,
   open,
   onToggleOpen,
   onToggleStatus,
@@ -755,6 +765,7 @@ function ExamCard({
 }: {
   exam: Exam;
   canManage: boolean;
+  canDelete: boolean;
   open: boolean;
   onToggleOpen: () => void;
   onToggleStatus: () => void;
@@ -800,7 +811,7 @@ function ExamCard({
 
       {open && (
         <div className="border-t border-border bg-muted/30 px-5 py-5">
-          <ExamDetail exam={exam} canManage={canManage} onToggleStatus={onToggleStatus} onRemove={onRemove} />
+          <ExamDetail exam={exam} canManage={canManage} canDelete={canDelete} onToggleStatus={onToggleStatus} onRemove={onRemove} />
         </div>
       )}
     </Card>
@@ -810,11 +821,13 @@ function ExamCard({
 function ExamDetail({
   exam,
   canManage,
+  canDelete,
   onToggleStatus,
   onRemove,
 }: {
   exam: Exam;
   canManage: boolean;
+  canDelete: boolean;
   onToggleStatus: () => void;
   onRemove: () => void;
 }) {
@@ -842,16 +855,16 @@ function ExamDetail({
           </a>
         </Button>
         {canManage && (
-          <>
-            <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
-              {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
-              {exam.registration_open ? "Đóng bài" : "Mở lại"}
-            </Button>
-            <Button variant="destructive" size="sm" onClick={onRemove} className="gap-2 ml-auto">
-              <Trash2 className="size-4" />
-              Xoá
-            </Button>
-          </>
+          <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
+            {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
+            {exam.registration_open ? "Đóng bài" : "Mở lại"}
+          </Button>
+        )}
+        {canDelete && (
+          <Button variant="destructive" size="sm" onClick={onRemove} className="gap-2 ml-auto">
+            <Trash2 className="size-4" />
+            Xoá
+          </Button>
         )}
       </div>
 
