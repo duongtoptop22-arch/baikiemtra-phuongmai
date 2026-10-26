@@ -140,6 +140,14 @@ function Dashboard() {
     staleTime: 60_000,
   });
 
+  const fetchRole = useServerFn(getMyRole);
+  const { data: me } = useQuery({
+    queryKey: ["my-role"],
+    queryFn: () => fetchRole({}),
+    staleTime: 60_000,
+  });
+  const isSuper = me?.role === "super_admin";
+
   const { data: exams, isLoading } = useQuery({
     queryKey: ["my-exams"],
     queryFn: async () => {
