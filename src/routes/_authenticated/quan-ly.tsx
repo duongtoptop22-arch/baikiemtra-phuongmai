@@ -811,7 +811,7 @@ function ExamCard({
 
       {open && (
         <div className="border-t border-border bg-muted/30 px-5 py-5">
-          <ExamDetail exam={exam} canManage={canManage} onToggleStatus={onToggleStatus} onRemove={onRemove} />
+          <ExamDetail exam={exam} canManage={canManage} canDelete={canDelete} onToggleStatus={onToggleStatus} onRemove={onRemove} />
         </div>
       )}
     </Card>
@@ -821,11 +821,13 @@ function ExamCard({
 function ExamDetail({
   exam,
   canManage,
+  canDelete,
   onToggleStatus,
   onRemove,
 }: {
   exam: Exam;
   canManage: boolean;
+  canDelete: boolean;
   onToggleStatus: () => void;
   onRemove: () => void;
 }) {
