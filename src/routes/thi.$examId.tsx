@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   checkStudentName,
@@ -23,6 +23,7 @@ import {
   formatDateTime,
   saveCompletedExam,
   secondsToClose,
+  seededShuffle,
   startKey,
   toEmbedUrl,
   type Exam,
@@ -129,6 +130,13 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
 
   const answersRef = useRef(answers);
   answersRef.current = answers;
+
+  // Trộn thứ tự câu hỏi riêng cho từng học sinh — giữ nguyên khi tải lại trang.
+  const shuffleSeed = attemptId ?? (testMode ? "teacher-preview" : "");
+  const shuffledQuestions = useMemo(
+    () => (shuffleSeed ? seededShuffle(questions ?? [], shuffleSeed) : (questions ?? [])),
+    [questions, shuffleSeed],
+  );
 
 
   // Refs giữ giá trị mới nhất cho các listener (tránh stale closure).
