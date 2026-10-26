@@ -109,3 +109,29 @@ export function saveCompletedExam(entry: CompletedExam) {
     /* bộ nhớ đầy hoặc bị chặn — bỏ qua */
   }
 }
+
+/**
+ * Trộn mảng theo hạt giống (dùng để đảo thứ tự câu hỏi cho từng học sinh).
+ * Cùng hạt seed cho cùng kết quả, nên thứ tự giữ nguyên khi học sinh tải lại trang.
+ */
+export function seededShuffle<T>(items: T[], seed: string): T[] {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  const rand = () => {
+    // mulberry32
+    h = (h + 0x6d2b79f5) >>> 0;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
