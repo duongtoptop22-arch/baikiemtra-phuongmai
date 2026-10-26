@@ -360,6 +360,7 @@ function Dashboard() {
                 key={exam.id}
                 exam={exam}
                 canManage={!myId || exam.teacher_id === myId}
+                canDelete={isSuper || (!myId || exam.teacher_id === myId)}
                 open={openId === exam.id}
                 onToggleOpen={() => setOpenId(openId === exam.id ? null : exam.id)}
                 onToggleStatus={() => toggle.mutate(exam)}
