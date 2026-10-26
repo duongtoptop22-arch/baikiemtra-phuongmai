@@ -757,6 +757,7 @@ function ManualForm({
 function ExamCard({
   exam,
   canManage,
+  canDelete,
   open,
   onToggleOpen,
   onToggleStatus,
@@ -764,6 +765,7 @@ function ExamCard({
 }: {
   exam: Exam;
   canManage: boolean;
+  canDelete: boolean;
   open: boolean;
   onToggleOpen: () => void;
   onToggleStatus: () => void;
