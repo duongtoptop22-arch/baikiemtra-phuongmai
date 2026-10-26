@@ -855,16 +855,16 @@ function ExamDetail({
           </a>
         </Button>
         {canManage && (
-          <>
-            <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
-              {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
-              {exam.registration_open ? "Đóng bài" : "Mở lại"}
-            </Button>
-            <Button variant="destructive" size="sm" onClick={onRemove} className="gap-2 ml-auto">
-              <Trash2 className="size-4" />
-              Xoá
-            </Button>
-          </>
+          <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
+            {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
+            {exam.registration_open ? "Đóng bài" : "Mở lại"}
+          </Button>
+        )}
+        {canDelete && (
+          <Button variant="destructive" size="sm" onClick={onRemove} className="gap-2 ml-auto">
+            <Trash2 className="size-4" />
+            Xoá
+          </Button>
         )}
       </div>
 
