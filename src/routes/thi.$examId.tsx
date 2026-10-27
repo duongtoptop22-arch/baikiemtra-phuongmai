@@ -488,24 +488,38 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
 
           {!startedAt && !testMode && (
               <div className="mt-5 text-left">
+                {errName && (
+                  <p className="mb-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] font-medium text-destructive">
+                    {errName}
+                  </p>
+                )}
                 <label className="block">
                   <span className="text-[13px] font-medium text-muted-foreground">Họ và tên</span>
                   <input
-                    className={`${field} mt-1.5`}
+                    className={`${field} mt-1.5 ${errName ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="DANG NGOC DUONG"
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (errName) setErrName(null);
+                    }}
+                    placeholder="NGUYEN GIA LINH"
                   />
                 </label>
                 <label className="mt-3 block">
                   <span className="text-[13px] font-medium text-muted-foreground">Lớp</span>
                   <input
-                    className={`${field} mt-1.5 placeholder:text-muted-foreground/60`}
+                    className={`${field} mt-1.5 placeholder:text-muted-foreground/60 ${errClass ? "border-destructive focus:border-destructive focus:ring-destructive/20" : ""}`}
                     value={klass}
-                    onChange={(e) => setKlass(e.target.value)}
+                    onChange={(e) => {
+                      setKlass(e.target.value);
+                      if (errClass) setErrClass(null);
+                    }}
                     placeholder="K19B SPAN"
                   />
                 </label>
+                {errClass && (
+                  <p className="mt-1.5 text-[12px] font-medium text-destructive">{errClass}</p>
+                )}
                 {formError && <p className="mt-2 text-[12px] text-destructive">{formError}</p>}
 
                 <div className="mt-4 rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3">
