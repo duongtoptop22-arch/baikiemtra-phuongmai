@@ -713,7 +713,7 @@ function ManualForm({
         <label className="block">
           <span className="text-sm font-medium text-muted-foreground">Mở lúc</span>
           <input
-            type="datetime-local"
+            type="datetime-local" lang="vi"
             className={field}
             value={form.open_at}
             onChange={(e) => setForm({ ...form, open_at: e.target.value })}
@@ -722,7 +722,7 @@ function ManualForm({
         <label className="block">
           <span className="text-sm font-medium text-muted-foreground">Đóng lúc</span>
           <input
-            type="datetime-local"
+            type="datetime-local" lang="vi"
             className={field}
             value={form.close_at}
             onChange={(e) => setForm({ ...form, close_at: e.target.value })}
@@ -1133,7 +1133,7 @@ function EditExamForm({ exam, onDone }: { exam: Exam; onDone: () => void }) {
             <label className="block">
               <span className="text-sm font-medium text-muted-foreground">Mở lúc</span>
               <input
-                type="datetime-local"
+                type="datetime-local" lang="vi"
                 className={field}
                 value={draft.open_at}
                 onChange={(e) => setDraft({ ...draft, open_at: e.target.value })}
@@ -1142,7 +1142,7 @@ function EditExamForm({ exam, onDone }: { exam: Exam; onDone: () => void }) {
             <label className="block">
               <span className="text-sm font-medium text-muted-foreground">Đóng lúc</span>
               <input
-                type="datetime-local"
+                type="datetime-local" lang="vi"
                 className={field}
                 value={draft.close_at}
                 onChange={(e) => setDraft({ ...draft, close_at: e.target.value })}
@@ -1787,7 +1787,7 @@ function AiExamCreator({ onCreated }: { onCreated: (id: string) => void }) {
         <label className="block">
           <span className="text-sm font-medium text-muted-foreground">Mở lúc</span>
           <input
-            type="datetime-local"
+            type="datetime-local" lang="vi"
             className={field}
             value={openAt}
             onChange={(e) => setOpenAt(e.target.value)}
@@ -1796,7 +1796,7 @@ function AiExamCreator({ onCreated }: { onCreated: (id: string) => void }) {
         <label className="block">
           <span className="text-sm font-medium text-muted-foreground">Đóng lúc</span>
           <input
-            type="datetime-local"
+            type="datetime-local" lang="vi"
             className={field}
             value={closeAt}
             onChange={(e) => setCloseAt(e.target.value)}
