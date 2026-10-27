@@ -502,7 +502,7 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
                       setName(e.target.value);
                       if (errName) setErrName(null);
                     }}
-                    placeholder="NGUYEN GIA LINH"
+                    placeholder="DANG NGOC DUONG"
                   />
                 </label>
                 <label className="mt-3 block">

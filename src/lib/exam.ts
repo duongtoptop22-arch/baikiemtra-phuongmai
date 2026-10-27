@@ -116,8 +116,8 @@ export function validateFullName(name: string): string | null {
   const words = trimmed.split(" ").filter(Boolean);
   if (!trimmed) return "Nhập đầy đủ họ và tên để bắt đầu làm bài.";
   if (!/^[a-zA-Zà-ỹđĐ\s]+$/.test(trimmed)) return "Họ tên chỉ chấp nhận chữ cái, không có ký tự lạ.";
-  if (words.length < 3) return "Nhập đầy đủ họ và tên (ví dụ: NGUYEN GIA LINH).";
-  if (words.some((w) => w.length < 2)) return "Nhập đầy đủ họ và tên (ví dụ: NGUYEN GIA LINH).";
+  if (words.length < 3) return "Nhập đầy đủ họ và tên (ví dụ: DANG NGOC DUONG).";
+  if (words.some((w) => w.length < 2)) return "Nhập đầy đủ họ và tên (ví dụ: DANG NGOC DUONG).";
   return null;
 }
 
