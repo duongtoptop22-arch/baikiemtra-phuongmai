@@ -110,6 +110,26 @@ export function saveCompletedExam(entry: CompletedExam) {
   }
 }
 
+/** Kiểm tra họ tên: chỉ gồm chữ cái, ít nhất 3 từ (họ + đệm + tên), mỗi từ tối thiểu 2 ký tự. */
+export function validateFullName(name: string): string | null {
+  const trimmed = name.trim().replace(/\s+/g, " ");
+  const words = trimmed.split(" ").filter(Boolean);
+  if (!trimmed) return "Nhập đầy đủ họ và tên để bắt đầu làm bài.";
+  if (!/^[a-zA-Zà-ỹđĐ\s]+$/.test(trimmed)) return "Họ tên chỉ chấp nhận chữ cái, không có ký tự lạ.";
+  if (words.length < 3) return "Nhập đầy đủ họ và tên (ví dụ: NGUYEN GIA LINH).";
+  if (words.some((w) => w.length < 2)) return "Nhập đầy đủ họ và tên (ví dụ: NGUYEN GIA LINH).";
+  return null;
+}
+
+/** Kiểm tra lớp: phải bắt đầu bằng chữ K (ví dụ: K19B SPAN). */
+export function validateKlass(klass: string): string | null {
+  const trimmed = klass.trim();
+  if (!trimmed) return "Nhập lớp của bạn.";
+  if (!/^k/i.test(trimmed)) return "Lớp phải bắt đầu bằng chữ K (ví dụ: K19B SPAN).";
+  if (!/^[kK][a-zA-Z0-9à-ỹđĐ\s\-.]+$/.test(trimmed)) return "Mã lớp chỉ gồm chữ, số và khoảng trắng.";
+  return null;
+}
+
 /**
  * Trộn mảng theo hạt giống (dùng để đảo thứ tự câu hỏi cho từng học sinh).
  * Cùng hạt seed cho cùng kết quả, nên thứ tự giữ nguyên khi học sinh tải lại trang.
