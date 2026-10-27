@@ -507,6 +507,7 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
                   </p>
                   <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-muted-foreground">
                     <li>• Nhập đúng họ tên và lớp của bạn để hệ thống tự động duyệt mở bài thi — bài làm sẽ gắn với tên này.</li>
+                    <li>• Thứ tự câu hỏi được trộn ngẫu nhiên riêng cho từng học sinh — mỗi người thấy một thứ tự khác nhau.</li>
                     <li>• Hệ thống ghi lại mọi lần bạn rời khỏi trang thi và báo cho giáo viên.</li>
                     <li>• Không mở tab khác, không tra cứu tài liệu, không trao đổi bài.</li>
                     <li>• Hết giờ bài sẽ tự dừng. Vi phạm có thể bị huỷ kết quả.</li>
@@ -557,12 +558,12 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
 
         {startedAt && !timeUp && !submitted && isManual && (
           <div className="mt-4 space-y-3">
-            {(questions ?? []).length === 0 && (
+            {shuffledQuestions.length === 0 && (
               <p className="rounded-2xl border border-border bg-card px-4 py-3 text-[13px] text-muted-foreground">
                 Giáo viên chưa nhập câu hỏi cho bài này.
               </p>
             )}
-            {(questions ?? []).map((q, i) => (
+            {shuffledQuestions.map((q, i) => (
               <div key={q.id} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
                 <p className="text-[12px] font-semibold text-muted-foreground">
                   Câu {i + 1} · {q.points} điểm
