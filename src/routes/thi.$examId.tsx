@@ -26,6 +26,8 @@ import {
   seededShuffle,
   startKey,
   toEmbedUrl,
+  validateFullName,
+  validateKlass,
   type Exam,
 } from "@/lib/exam";
 
@@ -100,6 +102,8 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
   const [name, setName] = useState("");
   const [klass, setKlass] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [errName, setErrName] = useState<string | null>(null);
+  const [errClass, setErrClass] = useState<string | null>(null);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [tabSwitches, setTabSwitches] = useState(0);
@@ -294,9 +298,12 @@ function ExamRunner({ exam, testMode }: { exam: Exam; testMode: boolean }) {
   }, [startedAt, submitted, testMode, exam.id]);
 
   const start = async () => {
-    if (!testMode && (!name.trim() || !klass.trim())) {
-      setFormError("Nhập họ tên và lớp trước khi bắt đầu.");
-      return;
+    if (!testMode) {
+      const nErr = validateFullName(name);
+      const cErr = validateKlass(klass);
+      setErrName(nErr);
+      setErrClass(cErr);
+      if (nErr || cErr) return;
     }
     setFormError(null);
     if (!testMode) {
