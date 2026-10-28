@@ -7,6 +7,7 @@ import {
 } from "@/lib/import-questions.functions";
 import { getAttemptReview, type ReviewQuestion } from "@/lib/quiz.functions";
 import { addAdmin, getMyRole, listAdmins, removeAdmin } from "@/lib/admin.functions";
+import { exportAttemptsToWord } from "@/lib/export-word";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,6 +33,7 @@ import {
   Edit3,
   Eye,
   FileText,
+  FileDown,
   FileUp,
   GraduationCap,
   Link2,
