@@ -856,6 +856,22 @@ function ExamDetail({
             Xem thử
           </a>
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={isLoading || (attempts?.length ?? 0) === 0}
+          onClick={() =>
+            exportAttemptsToWord({
+              examTitle: exam.title,
+              subject: exam.subject,
+              rows: attempts ?? [],
+            })
+          }
+        >
+          <FileDown className="size-4" />
+          Xuất Word
+        </Button>
         {canManage && (
           <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
             {exam.registration_open ? <Pause className="size-4" /> : <Play className="size-4" />}
