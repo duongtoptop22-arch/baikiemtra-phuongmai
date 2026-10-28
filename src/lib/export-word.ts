@@ -101,5 +101,12 @@ export function exportAttemptsToWord(opts: {
 </html>`;
 
   const blob = new Blob(["\ufeff", html], { type: "application/msword;charset=utf-8" });
+  const safeTitle = opts.examTitle
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "d")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
   deliverFile(blob, `danh-sach-lam-bai-${safeTitle || "bai-kiem-tra"}.doc`);
 }
