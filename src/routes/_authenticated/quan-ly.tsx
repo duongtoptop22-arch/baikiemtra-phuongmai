@@ -7,6 +7,7 @@ import {
 } from "@/lib/import-questions.functions";
 import { getAttemptReview, type ReviewQuestion } from "@/lib/quiz.functions";
 import { addAdmin, getMyRole, listAdmins, removeAdmin } from "@/lib/admin.functions";
+import { exportAttemptsToWord } from "@/lib/export-word";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,6 +33,7 @@ import {
   Edit3,
   Eye,
   FileText,
+  FileDown,
   FileUp,
   GraduationCap,
   Link2,
@@ -853,6 +855,22 @@ function ExamDetail({
             <Eye className="size-4" />
             Xem thử
           </a>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={isLoading || (attempts?.length ?? 0) === 0}
+          onClick={() =>
+            exportAttemptsToWord({
+              examTitle: exam.title,
+              subject: exam.subject,
+              rows: attempts ?? [],
+            })
+          }
+        >
+          <FileDown className="size-4" />
+          Xuất Word
         </Button>
         {canManage && (
           <Button variant="outline" size="sm" onClick={onToggleStatus} className="gap-2">
