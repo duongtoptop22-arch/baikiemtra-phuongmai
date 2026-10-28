@@ -1,4 +1,5 @@
 import { formatDateTime } from "@/lib/exam";
+import { deliverFile } from "@/lib/deliver-file";
 
 export type WordAttemptRow = {
   student_name: string;
@@ -100,8 +101,6 @@ export function exportAttemptsToWord(opts: {
 </html>`;
 
   const blob = new Blob(["\ufeff", html], { type: "application/msword;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
   const safeTitle = opts.examTitle
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -109,10 +108,5 @@ export function exportAttemptsToWord(opts: {
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .toLowerCase();
-  a.href = url;
-  a.download = `danh-sach-lam-bai-${safeTitle || "bai-kiem-tra"}.doc`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  deliverFile(blob, `danh-sach-lam-bai-${safeTitle || "bai-kiem-tra"}.doc`);
 }
