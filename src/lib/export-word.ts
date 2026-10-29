@@ -76,18 +76,20 @@ export function exportAttemptsToWord(opts: {
   const firstWord = (s: string) => s.split(" ")[0] ?? "";
   for (let i = 0; i < rows.length; i++) {
     for (let j = i + 1; j < rows.length; j++) {
+      const ni = norm[i] ?? "";
+      const nj = norm[j] ?? "";
       if (coll[i] === coll[j]) {
         union(i, j);
         continue;
       }
       // Tên viết khác nhau nhưng giống nhau về mặt chữ: cùng họ (từ đầu tiên)
       // và lệch nhau ít ký tự -> coi là một học sinh spam tên.
-      const dist = levenshtein(coll[i], coll[j]);
+      const dist = levenshtein(coll[i] ?? "", coll[j] ?? "");
       const limit = Math.max(
         2,
-        Math.round((Math.max(coll[i].length, coll[j].length) * 15) / 100),
+        Math.round((Math.max((coll[i] ?? "").length, (coll[j] ?? "").length) * 15) / 100),
       );
-      if (dist <= limit && firstWord(norm[i]) === firstWord(norm[j])) union(i, j);
+      if (dist <= limit && firstWord(ni) === firstWord(nj)) union(i, j);
     }
   }
 
