@@ -53,7 +53,8 @@ function levenshtein(a: string, b: string): number {
  * Xuất danh sách sinh viên đã làm bài ra file Word (.doc).
  * Cột: 1 Tên, 2 Lớp, 3 MSV, 4 Điểm, 5 Ghi chú (rời tab, số lần làm bài, chưa nộp…).
  * Tự phát hiện tên trùng / viết tương tự nhau (vd "Trương Thế Huy" vs
- * "truong thế huyyyy") và gộp vào một nhóm, ghi rõ lần làm thứ mấy.
+ * "truong thế huyyyy") và gộp vào một nhóm, ghi tổng số lần làm
+ * và điểm của từng lần làm ở cột Ghi chú.
  */
 export function exportAttemptsToWord(opts: {
   examTitle: string;
@@ -104,7 +105,15 @@ export function exportAttemptsToWord(opts: {
     if (!list.some((n) => n.toLowerCase() === name.toLowerCase())) list.push(name);
     groupVariants.set(g, list);
   }
-  const seenByGroup = new Map<number, number>();
+  // Gom điểm của từng lần làm trong cùng một nhóm (theo thứ tự trong danh sách).
+  const groupScores = new Map<number, string[]>();
+  for (let i = 0; i < rows.length; i++) {
+    const g = find(i);
+    const sc = rows[i]!.score !== null ? `${rows[i]!.score}/10` : "—";
+    const list = groupScores.get(g) ?? [];
+    list.push(sc);
+    groupScores.set(g, list);
+  }
 
   const escape = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
