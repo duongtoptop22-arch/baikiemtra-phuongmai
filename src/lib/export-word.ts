@@ -46,7 +46,7 @@ function levenshtein(a: string, b: string): number {
     prev = curr;
     curr = tmp;
   }
-  return prev[n];
+  return prev[n] ?? 0;
 }
 
 /**
@@ -67,7 +67,7 @@ export function exportAttemptsToWord(opts: {
   const coll = norm.map(collapseRepeats);
   const parent = rows.map((_, i) => i);
   const find = (x: number): number =>
-    parent[x] === x ? x : (parent[x] = find(parent[x]));
+    parent[x] === x ? x : (parent[x] = find(parent[x]!));
   const union = (a: number, b: number) => {
     const ra = find(a);
     const rb = find(b);
@@ -99,7 +99,7 @@ export function exportAttemptsToWord(opts: {
   for (let i = 0; i < rows.length; i++) {
     const g = find(i);
     groupCount.set(g, (groupCount.get(g) ?? 0) + 1);
-    const name = rows[i].student_name.trim();
+    const name = rows[i]!.student_name.trim();
     const list = groupVariants.get(g) ?? [];
     if (!list.some((n) => n.toLowerCase() === name.toLowerCase())) list.push(name);
     groupVariants.set(g, list);
