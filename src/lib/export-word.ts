@@ -23,7 +23,20 @@ function normalizeName(raw: string): string {
     .trim();
 }
 
-/** Gộp ký tự lặp liền nhau ("huyyyy" -> "huy") để bắt tên spam ký tự. */
+/** Chuẩn hoá lớp để so sánh: bỏ dấu, viết thường, bỏ ký tự lạ. */
+function normalizeClass(raw: string | null): string {
+  return (raw ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Gộp ký tự lặp liền nhau ("huyyyy" -> "huy", "anhh" -> "anh") để bắt tên spam ký tự. */
 function collapseRepeats(s: string): string {
   return s.replace(/(.)\1+/g, "$1");
 }
@@ -51,10 +64,10 @@ function levenshtein(a: string, b: string): number {
 
 /**
  * Xuất danh sách sinh viên đã làm bài ra file Word (.doc).
- * Cột: 1 Tên, 2 Lớp, 3 MSV, 4 Điểm, 5 Ghi chú (rời tab, số lần làm bài, chưa nộp…).
- * Tự phát hiện tên trùng / viết tương tự nhau (vd "Trương Thế Huy" vs
- * "truong thế huyyyy") và gộp vào một nhóm, ghi tổng số lần làm
- * và điểm của từng lần làm ở cột Ghi chú.
+ * Mỗi học sinh chỉ chiếm MỘT dòng: các lượt làm có tên + lớp trùng nhau
+ * (hoặc viết tương tự kiểu spam ký tự như "anhh", "huyyyy") được gộp làm một người.
+ * Cột: 1 STT, 2 Tên, 3 Lớp, 4 MSV, 5 Điểm, 6 Ghi chú (số lần làm, điểm từng lần,
+ * rời tab, tên viết tương tự, chưa nộp…).
  */
 export function exportAttemptsToWord(opts: {
   examTitle: string;
@@ -63,9 +76,18 @@ export function exportAttemptsToWord(opts: {
 }) {
   const rows = opts.rows;
 
-  // Gom nhóm tên trùng / tương tự nhau (union-find) để đếm số lượt làm bài.
+  // Chuẩn hoá tên + lớp của từng lượt làm.
   const norm = rows.map((r) => normalizeName(r.student_name));
   const coll = norm.map(collapseRepeats);
+  const klass = rows.map((r) => normalizeClass(r.student_class));
+  const firstWord = (s: string) => s.split(" ")[0] ?? "";
+
+  // Lớp chỉ được coi là trùng khi cả hai đều có và giống nhau;
+  // nếu một bên chưa nhập lớp thì không dùng lớp để phân biệt.
+  const sameClass = (i: number, j: number) =>
+    !klass[i] || !klass[j] || klass[i] === klass[j];
+
+  // Gom nhóm (union-find): một người = tên + lớp trùng nhau.
   const parent = rows.map((_, i) => i);
   const find = (x: number): number =>
     parent[x] === x ? x : (parent[x] = find(parent[x]!));
@@ -74,75 +96,115 @@ export function exportAttemptsToWord(opts: {
     const rb = find(b);
     if (ra !== rb) parent[Math.max(ra, rb)] = Math.min(ra, rb);
   };
-  const firstWord = (s: string) => s.split(" ")[0] ?? "";
   for (let i = 0; i < rows.length; i++) {
     for (let j = i + 1; j < rows.length; j++) {
+      if (!sameClass(i, j)) continue;
       const ni = norm[i] ?? "";
       const nj = norm[j] ?? "";
-      if (coll[i] === coll[j]) {
+      const ci = coll[i] ?? "";
+      const cj = coll[j] ?? "";
+      // Trùng hẳn (kể cả sau khi gộp ký tự lặp: "anhh" = "anh", "huyyyy" = "huy").
+      if (ci === cj) {
         union(i, j);
         continue;
       }
-      // Tên viết khác nhau nhưng giống nhau về mặt chữ: cùng họ (từ đầu tiên)
-      // và lệch nhau ít ký tự -> coi là một học sinh spam tên.
-      const dist = levenshtein(coll[i] ?? "", coll[j] ?? "");
-      const limit = Math.max(
-        2,
-        Math.round((Math.max((coll[i] ?? "").length, (coll[j] ?? "").length) * 15) / 100),
-      );
-      if (dist <= limit && firstWord(ni) === firstWord(nj)) union(i, j);
+      // Tên viết khác nhau nhưng một trong hai có ký tự lặp (spam) -> so sánh nới lỏng:
+      // cùng họ (từ đầu tiên) và lệch ít ký tự, vd "truong thế huy" vs "truong thế hiiiyy".
+      // Tên viết chuẩn không có ký tự lặp thì phải trùng hẳn mới gộp,
+      // nên "nguyễn dung anh" và "nguyễn dung an" là hai người khác nhau.
+      const spam = ci !== ni || cj !== nj;
+      if (spam && firstWord(ni) === firstWord(nj)) {
+        const dist = levenshtein(ci, cj);
+        const limit = Math.max(
+          2,
+          Math.round((Math.max(ci.length, cj.length) * 15) / 100),
+        );
+        if (dist <= limit) union(i, j);
+      }
     }
   }
 
-  // Đếm số lượt theo nhóm và gom các biến thể tên của mỗi nhóm.
-  const groupCount = new Map<number, number>();
-  const groupVariants = new Map<number, string[]>();
+  // Gom các lượt làm của từng người theo thứ tự xuất hiện trong danh sách.
+  const groups = new Map<number, number[]>();
   for (let i = 0; i < rows.length; i++) {
     const g = find(i);
-    groupCount.set(g, (groupCount.get(g) ?? 0) + 1);
-    const name = rows[i]!.student_name.trim();
-    const list = groupVariants.get(g) ?? [];
-    if (!list.some((n) => n.toLowerCase() === name.toLowerCase())) list.push(name);
-    groupVariants.set(g, list);
+    const list = groups.get(g) ?? [];
+    list.push(i);
+    groups.set(g, list);
   }
-  // Gom điểm của từng lần làm trong cùng một nhóm (theo thứ tự trong danh sách).
-  const groupScores = new Map<number, string[]>();
-  for (let i = 0; i < rows.length; i++) {
-    const g = find(i);
-    const sc = rows[i]!.score !== null ? `${rows[i]!.score}/10` : "—";
-    const list = groupScores.get(g) ?? [];
-    list.push(sc);
-    groupScores.set(g, list);
-  }
+  const groupOrder = [...groups.keys()];
+
+  // Chọn tên hiển thị: biến thể xuất hiện nhiều nhất (hòa thì chọn biến thể xuất hiện trước).
+  const pickName = (idxs: number[]): string => {
+    const count = new Map<string, { n: number; first: number }>();
+    for (const idx of idxs) {
+      const name = rows[idx]!.student_name.trim();
+      const key = name.toLowerCase();
+      const cur = count.get(key);
+      if (cur) cur.n += 1;
+      else count.set(key, { n: 1, first: idx });
+    }
+    let best = "";
+    let bestN = -1;
+    let bestFirst = Infinity;
+    for (const [key, v] of count) {
+      if (v.n > bestN || (v.n === bestN && v.first < bestFirst)) {
+        best = rows[
+          idxs.find((i) => rows[i]!.student_name.trim().toLowerCase() === key)!
+        ]!.student_name.trim();
+        bestN = v.n;
+        bestFirst = v.first;
+      }
+    }
+    return best;
+  };
 
   const escape = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  const body = rows
-    .map((r, i) => {
+  let stt = 0;
+  const body = groupOrder
+    .map((g) => {
+      const idxs = groups.get(g) ?? [];
+      stt += 1;
+      const name = pickName(idxs);
+      const klassText = rows[idxs[0]!]?.student_class ?? "";
+
       const notes: string[] = [];
-      if (r.tab_switches > 0) notes.push(`Chuyển tab ${r.tab_switches} lần`);
-      const g = find(i);
-      const total = groupCount.get(g) ?? 1;
+      const totalTabs = idxs.reduce((s, i) => s + (rows[i]!.tab_switches ?? 0), 0);
+      if (totalTabs > 0) notes.push(`Chuyển tab ${totalTabs} lần`);
+      const total = idxs.length;
       if (total > 1) {
         notes.push(`Đã tham gia ${total} lần`);
-        const scores = (groupScores.get(g) ?? []).join(", ");
+        const scores = idxs
+          .map((i) => (rows[i]!.score !== null ? `${rows[i]!.score}/10` : "—"))
+          .join(", ");
         if (scores) notes.push(`Điểm các lần làm: ${scores}`);
-        const variants = (groupVariants.get(g) ?? []).filter(
-          (v) => v.toLowerCase() !== r.student_name.trim().toLowerCase(),
-        );
+        const variants = [
+          ...new Set(
+            idxs.map((i) => rows[i]!.student_name.trim()),
+          ),
+        ].filter((v) => v.toLowerCase() !== name.toLowerCase());
         if (variants.length > 0)
           notes.push(`Tên viết tương tự: ${variants.join(", ")}`);
       }
-      if (!r.submitted_at) notes.push("Chưa nộp bài");
+      if (idxs.some((i) => !rows[i]!.submitted_at)) notes.push("Chưa nộp bài");
 
-      const scoreText =
-        r.score !== null ? `${r.score}/10` : r.submitted_at ? "Đã nộp (chưa có điểm)" : "—";
+      // Điểm cao nhất trong các lượt làm hiển thị ở cột Điểm.
+      const scores = idxs
+        .map((i) => rows[i]!.score)
+        .filter((s): s is number => s !== null);
+      let scoreText: string;
+      if (scores.length > 0) scoreText = `${Math.max(...scores)}/10`;
+      else if (idxs.some((i) => rows[i]!.submitted_at))
+        scoreText = "Đã nộp (chưa có điểm)";
+      else scoreText = "—";
+
       return (
         `<tr>` +
-        `<td class="c">${i + 1}</td>` +
-        `<td class="name">${escape(r.student_name)}</td>` +
-        `<td>${escape(r.student_class ?? "")}</td>` +
+        `<td class="c">${stt}</td>` +
+        `<td class="name">${escape(name)}</td>` +
+        `<td>${escape(klassText)}</td>` +
         `<td class="c">—</td>` +
         `<td class="c score">${escape(scoreText)}</td>` +
         `<td>${escape(notes.join("; "))}</td>` +
@@ -174,7 +236,7 @@ export function exportAttemptsToWord(opts: {
 <body>
   <h1>DANH SÁCH SINH VIÊN THAM GIA LÀM BÀI KIỂM TRA</h1>
   <p class="sub">${escape(opts.examTitle)}${opts.subject ? ` — ${escape(opts.subject)}` : ""}</p>
-  <p class="meta">Số lượt làm bài: ${rows.length} · Xuất lúc: ${formatDateTime(new Date().toISOString())}</p>
+  <p class="meta">Số sinh viên: ${groupOrder.length} · Số lượt làm bài: ${rows.length} · Xuất lúc: ${formatDateTime(new Date().toISOString())}</p>
   <table>
     <thead>
       <tr>
@@ -188,7 +250,7 @@ export function exportAttemptsToWord(opts: {
     </thead>
     <tbody>${body}</tbody>
   </table>
-  <p class="meta" style="margin-top:14pt">Ghi chú: cột MSV để trống vì hệ thống không thu thập mã sinh viên; các ghi chú gồm số lần rời tab trong lúc thi, tổng số lần tham gia làm bài, điểm của từng lần làm và trạng thái nộp bài. Các tên trùng nhau hoặc viết tương tự (thêm bớt ký tự, có/không dấu) được gộp làm một và ghi rõ các biến thể tên ở cột Ghi chú.</p>
+  <p class="meta" style="margin-top:14pt">Ghi chú: mỗi học sinh chỉ chiếm một dòng — các lượt làm có cùng tên và lớp được gộp làm một người, gồm cả tên viết tương tự (thêm bớt ký tự lặp như "anhh", "huyyyy", có/không dấu). Tên khác hẳn (ví dụ "Nguyễn Dung An" khác "Nguyễn Dung Anh") không bị gộp. Cột MSV để trống vì hệ thống không thu thập mã sinh viên. Cột Điểm hiển thị điểm cao nhất; điểm của từng lượt làm ghi ở Ghi chú.</p>
 </body>
 </html>`;
 
