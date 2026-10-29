@@ -53,7 +53,8 @@ function levenshtein(a: string, b: string): number {
  * Xuất danh sách sinh viên đã làm bài ra file Word (.doc).
  * Cột: 1 Tên, 2 Lớp, 3 MSV, 4 Điểm, 5 Ghi chú (rời tab, số lần làm bài, chưa nộp…).
  * Tự phát hiện tên trùng / viết tương tự nhau (vd "Trương Thế Huy" vs
- * "truong thế huyyyy") và gộp vào một nhóm, ghi rõ lần làm thứ mấy.
+ * "truong thế huyyyy") và gộp vào một nhóm, ghi tổng số lần làm
+ * và điểm của từng lần làm ở cột Ghi chú.
  */
 export function exportAttemptsToWord(opts: {
   examTitle: string;
@@ -104,7 +105,15 @@ export function exportAttemptsToWord(opts: {
     if (!list.some((n) => n.toLowerCase() === name.toLowerCase())) list.push(name);
     groupVariants.set(g, list);
   }
-  const seenByGroup = new Map<number, number>();
+  // Gom điểm của từng lần làm trong cùng một nhóm (theo thứ tự trong danh sách).
+  const groupScores = new Map<number, string[]>();
+  for (let i = 0; i < rows.length; i++) {
+    const g = find(i);
+    const sc = rows[i]!.score !== null ? `${rows[i]!.score}/10` : "—";
+    const list = groupScores.get(g) ?? [];
+    list.push(sc);
+    groupScores.set(g, list);
+  }
 
   const escape = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -116,9 +125,9 @@ export function exportAttemptsToWord(opts: {
       const g = find(i);
       const total = groupCount.get(g) ?? 1;
       if (total > 1) {
-        const n = (seenByGroup.get(g) ?? 0) + 1;
-        seenByGroup.set(g, n);
-        notes.push(`Tham gia làm bài ${n}/${total} lần`);
+        notes.push(`Đã tham gia ${total} lần`);
+        const scores = (groupScores.get(g) ?? []).join(", ");
+        if (scores) notes.push(`Điểm các lần làm: ${scores}`);
         const variants = (groupVariants.get(g) ?? []).filter(
           (v) => v.toLowerCase() !== r.student_name.trim().toLowerCase(),
         );
@@ -179,7 +188,7 @@ export function exportAttemptsToWord(opts: {
     </thead>
     <tbody>${body}</tbody>
   </table>
-  <p class="meta" style="margin-top:14pt">Ghi chú: cột MSV để trống vì hệ thống không thu thập mã sinh viên; các ghi chú gồm số lần rời tab trong lúc thi, lượt làm bài thứ mấy và trạng thái nộp bài. Các tên trùng nhau hoặc viết tương tự (thêm bớt ký tự, có/không dấu) được gộp làm một và ghi rõ các biến thể tên ở cột Ghi chú.</p>
+  <p class="meta" style="margin-top:14pt">Ghi chú: cột MSV để trống vì hệ thống không thu thập mã sinh viên; các ghi chú gồm số lần rời tab trong lúc thi, tổng số lần tham gia làm bài, điểm của từng lần làm và trạng thái nộp bài. Các tên trùng nhau hoặc viết tương tự (thêm bớt ký tự, có/không dấu) được gộp làm một và ghi rõ các biến thể tên ở cột Ghi chú.</p>
 </body>
 </html>`;
 
