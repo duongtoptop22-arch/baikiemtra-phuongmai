@@ -125,9 +125,9 @@ export function exportAttemptsToWord(opts: {
       const g = find(i);
       const total = groupCount.get(g) ?? 1;
       if (total > 1) {
-        const n = (seenByGroup.get(g) ?? 0) + 1;
-        seenByGroup.set(g, n);
-        notes.push(`Tham gia làm bài ${n}/${total} lần`);
+        notes.push(`Đã tham gia ${total} lần`);
+        const scores = (groupScores.get(g) ?? []).join(", ");
+        if (scores) notes.push(`Điểm các lần làm: ${scores}`);
         const variants = (groupVariants.get(g) ?? []).filter(
           (v) => v.toLowerCase() !== r.student_name.trim().toLowerCase(),
         );
@@ -188,7 +188,7 @@ export function exportAttemptsToWord(opts: {
     </thead>
     <tbody>${body}</tbody>
   </table>
-  <p class="meta" style="margin-top:14pt">Ghi chú: cột MSV để trống vì hệ thống không thu thập mã sinh viên; các ghi chú gồm số lần rời tab trong lúc thi, lượt làm bài thứ mấy và trạng thái nộp bài. Các tên trùng nhau hoặc viết tương tự (thêm bớt ký tự, có/không dấu) được gộp làm một và ghi rõ các biến thể tên ở cột Ghi chú.</p>
+  <p class="meta" style="margin-top:14pt">Ghi chú: cột MSV để trống vì hệ thống không thu thập mã sinh viên; các ghi chú gồm số lần rời tab trong lúc thi, tổng số lần tham gia làm bài, điểm của từng lần làm và trạng thái nộp bài. Các tên trùng nhau hoặc viết tương tự (thêm bớt ký tự, có/không dấu) được gộp làm một và ghi rõ các biến thể tên ở cột Ghi chú.</p>
 </body>
 </html>`;
 
